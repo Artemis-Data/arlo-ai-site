@@ -158,7 +158,7 @@ Arlo can push real-time notifications to your agent when provider activity occur
 Pass webhook config when calling `init_signup` (or `POST /auth/init` for REST):
 
 ```json
-{
+{ 
   "sessionKey": "your-session-key",
   "webhookUrl": "https://your-agent-endpoint/hooks/wake",
   "webhookToken": "your-secret-token",
