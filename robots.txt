@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# AI Agent Discovery
+# Documentation: /llms.txt
+# MCP Server: https://mcp.arlohealth.ai
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Google-Extended
+Allow: /

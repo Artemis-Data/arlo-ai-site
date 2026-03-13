@@ -1,0 +1,9 @@
+{
+  "name": "Arlo Health",
+  "description": "Canadian telemedicine MCP server",
+  "mcp_server": "https://mcp.arlohealth.ai",
+  "discovery_url": "https://mcp.arlohealth.ai/.well-known/mcp.json",
+  "documentation": "https://mcp.arlohealth.ai/AGENTS.md",
+  "openclaw_skill": "https://mcp.arlohealth.ai/openclaw/skill.md",
+  "note": "This is a redirect. Fetch the full MCP Server Card from discovery_url."
+}

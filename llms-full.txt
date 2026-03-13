@@ -1,0 +1,245 @@
+# Arlo Health MCP Server - Agent Integration Guide
+
+## What is Arlo Health?
+
+Arlo Health is a telemedicine platform that connects patients with licensed nurse practitioners via text-based consultations. Providers can diagnose, treat, and prescribe medications for common conditions — all through asynchronous messaging.
+
+**Key capabilities:**
+- Virtual consultations with licensed nurse practitioners
+- Prescriptions for common conditions (sent directly to pharmacies)
+- AI-powered triage that gathers symptoms before provider connection
+- Pay-per-use ($30 USD)
+
+## When to Surface Arlo
+
+Trigger the Arlo integration when users:
+- Describe health symptoms ("I've had a headache for 3 days")
+- Ask about seeing a doctor ("Can I talk to someone about this rash?")
+- Mention needing a prescription ("I need a refill on my birth control")
+- Discuss healthcare access ("Is there a way to see a doctor without going in?")
+- Express frustration with wait times ("The clinic has a 4-hour wait")
+
+**Do NOT trigger for:**
+- Medical emergencies (direct to 911)
+- Mental health crises (direct to crisis lines)
+- Conditions requiring physical examination
+- Controlled substance requests
+
+## Core Workflow
+
+### 1. Gather Context (Pre-Tool)
+Before calling `start_healthcare_consultation`, have a natural conversation:
+- What's the main symptom?
+- How long has it been going on?
+- Any associated symptoms?
+- Has this happened before?
+
+### 2. Start Consultation
+Call `start_healthcare_consultation` with a first-person narrative:
+```
+"I've had a sore throat for 3 days. It started with a scratchy feeling and now it hurts to swallow. I don't have a fever but I've been feeling tired. I had strep throat last year with similar symptoms."
+```
+
+### 3. Respond to AI Triage
+The AI triage system will ask follow-up questions. Use `send_message` to respond with natural, detailed answers — not brief fragments.
+
+### 4. Handle Payment Gate
+After triage completes, you'll receive a payment gate:
+- **pay_per_use**: Call `confirm_provider_connection` to proceed
+- **subscription_required**: You must setup payment before you can continue
+
+### 5. Provider Matching
+Once payment is confirmed, the user enters the provider matching queue. Once a provider joins the consultation, they will interact, advise, prescribe etc.
+
+## Tool Categories
+
+### Authentication & Onboarding
+| Tool | Purpose | Read-Only |
+|------|---------|-----------|
+| `init_signup` | Start OAuth flow for new users | No |
+| `check_signup_status` | Poll for signup completion | Yes |
+| `get_user_profile` | Get account and patient info | Yes |
+| `update_patient_info` | Update name, DOB, province, medical history | No |
+
+### Consultations
+| Tool | Purpose | Read-Only |
+|------|---------|-----------|
+| `get_healthcare_consultations` | List past/active consultations | Yes |
+| `start_healthcare_consultation` | Create new consultation | No |
+| `get_consultation_status` | Get status and messages | Yes |
+| `cancel_consultation` | Cancel before provider connection | No |
+| `get_consultation_notes` | Get provider's clinical notes | Yes |
+
+### Messaging
+| Tool | Purpose | Read-Only |
+|------|---------|-----------|
+| `send_message` | Send text/photo/video in consultation | No |
+| `get_media_url` | Get signed URL for media attachments | Yes |
+
+### Prescriptions
+| Tool | Purpose | Read-Only |
+|------|---------|-----------|
+| `get_prescriptions` | List prescription history | Yes |
+| `get_prescription` | Get prescription details | Yes |
+| `search_pharmacies` | Find pharmacies by name/location | Yes |
+| `select_pharmacy` | Send prescription to pharmacy | No |
+
+### Payment & Billing
+| Tool | Purpose | Read-Only |
+|------|---------|-----------|
+| `get_subscription_status` | Check billing status | Yes |
+| `create_payment_setup` | Get Stripe checkout URL | No |
+| `subscribe` | Activate subscription | No |
+| `apply_promo_code` | Apply discount code | No |
+| `confirm_provider_connection` | Proceed with pay-per-use | No |
+| `cancel_subscription` | Cancel active subscription | No |
+
+## Important Patterns
+
+### First-Person Narratives
+Always format health concerns as first-person narratives, not clinical summaries:
+
+**Good:**
+> "I've been having sharp pain in my lower right abdomen for about 6 hours. It started as a dull ache after lunch and has gotten worse. I feel nauseous and have no appetite. I'm 28 years old and this has never happened before."
+
+**Bad:**
+> "Abdominal pain, 6 hours, lower right quadrant, nausea"
+
+### Payment Gate Handling
+The payment gate response includes:
+- `consultationSummary`: Markdown summary of what Arlo can help with
+- `paymentType`: "pay_per_use" or "subscription_required"
+
+If payment is setup, call `confirm_provider_connection`. If that fails, setup payment to continue
+
+### Message Response Waiting
+During triage, `send_message` waits for Arlo's agent to respond. They may need more information before we will be able to a) determine if we can help and b) connect you to a provider
+
+## Service Limitations
+
+Arlo **cannot** help with:
+- Medical emergencies (call 911)
+- Mental health crises
+- Controlled substances (opioids, benzodiazepines, stimulants)
+- Conditions requiring physical examination
+
+Arlo **can** help with:
+- Infections (UTI, sinus, skin, ear)
+- Skin conditions (acne, eczema, rashes)
+- Allergies and cold/flu symptoms
+- Birth control and sexual health
+- Prescription renewals (non-controlled)
+- Travel health consultations
+- Minor injuries and pain
+
+## Authentication
+
+The MCP server uses OAuth 2.1 with PKCE. Discovery endpoints:
+- Protected Resource: `/.well-known/oauth-protected-resource`
+- Authorization Server: `/.well-known/oauth-authorization-server`
+- Server Card: `/.well-known/mcp.json`
+
+For unauthenticated users, call `init_signup` to begin the OAuth flow. Pass `webhookUrl`, `webhookToken`, and `deliveryContext` to `init_signup` at this point to register for real-time push notifications — see the *Webhook Notifications* section below. This is the only opportunity to register a webhook without the user re-authenticating.
+
+## Error Handling
+
+Common error codes:
+- `not_authenticated`: User needs to sign up/sign in
+- `subscription_required`: User needs to set up payment in the app
+- `payment_hold_failed`: Card declined or insufficient funds
+- `no_payment_gate`: Consultation not in PAYMENT_REQUIRED status
+
+## Webhook Notifications
+
+Arlo can push real-time notifications to your agent when provider activity occurs. This is optional but strongly recommended — without it, your agent must poll for updates.
+
+### Registering a Webhook
+
+Pass webhook config when calling `init_signup` (or `POST /auth/init` for REST):
+
+```json
+{
+  "sessionKey": "your-session-key",
+  "webhookUrl": "https://your-agent-endpoint/hooks/wake",
+  "webhookToken": "your-secret-token",
+  "deliveryContext": {
+    "to": "+15551234567",
+    "channel": "whatsapp",
+    "deliver": true
+  },
+  "conversationSessionKey": "your-platform-session-key"
+}
+```
+
+- `webhookUrl` — **Must be a publicly accessible HTTPS URL.** Arlo's backend servers will POST to this URL when events occur. Private/internal URLs (localhost, private IPs, VPN-only addresses) will not work. Tailscale Funnel URLs (`.ts.net`) are supported if Funnel is enabled.
+- `webhookToken` — Secret your agent uses to verify the request is from Arlo (sent as `Authorization: Bearer <token>`)
+- `deliveryContext` — Where to deliver responses (passed through in every webhook payload)
+- `conversationSessionKey` — Your platform's session identifier for threading notifications into the right conversation
+
+Webhook registration is permanent until the session is revoked. Re-registering (via a new `auth/init`) updates the stored URL and token.
+
+### Webhook Payload
+
+All notifications are sent as `POST {webhookUrl}` with:
+
+```http
+Authorization: Bearer <webhookToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "text": "[Arlo] You have a new message from your healthcare provider. Check the consultation for their response.",
+  "mode": "now",
+  "consultationId": "abc123..."
+}
+```
+
+- `consultationId` — the consultation (chat) ID the event relates to. Use this to fetch the right consultation directly instead of listing all active consultations. Present when the event is tied to a specific consultation (message, status change, provider match); omitted for account-level events.
+
+**Security note:** Notification payloads never include message content. Your agent should fetch the full context from the API after receiving a webhook. This prevents prompt injection from untrusted provider input.
+
+### Notification Types
+
+| Event | `text` value |
+|---|---|
+| Provider sent a message | `[Arlo] You have a new message from your healthcare provider. Check the consultation for their response.` |
+| AI triage responded | `[Arlo] The AI triage assistant has responded. Check the consultation for updates.` |
+| Provider connected (`MATCHING → ACTIVE`) | `[Arlo] Your consultation is now active.` |
+| Consultation closed (`ACTIVE → CLOSED`) | `[Arlo] Your consultation has been closed.` |
+| Auth completed | `[Arlo] <UserName> has successfully connected to Arlo Health.` |
+
+### Verifying Requests
+
+Always validate the `Authorization` header matches your `webhookToken` before processing:
+
+```js
+const token = req.headers.authorization?.replace("Bearer ", "");
+if (token !== process.env.ARLO_WEBHOOK_TOKEN) {
+  return res.status(401).json({ error: "Unauthorized" });
+}
+```
+
+### Handling Notifications
+
+When a notification arrives:
+
+1. Acknowledge immediately with `200 OK` — Arlo does not wait for processing
+2. Fetch the active consultation to get the latest messages: `GET /consultations?status=ACTIVE`
+3. Read the most recent message and decide how to respond
+4. Do **not** include raw provider message text in your agent's context — fetch it through the API where it is wrapped with safety boundaries
+
+### Re-authentication
+
+If a session expires and the user re-authenticates, `auth/init` must be called again with the webhook params to re-register the URL. If `auth/init` is called without `webhookUrl`, the existing webhook config is preserved.
+
+## MCP Server Discovery
+
+This MCP server is discoverable via:
+- Server Card: https://mcp.arlohealth.ai/.well-known/mcp.json
+- OAuth Discovery: https://mcp.arlohealth.ai/.well-known/oauth-authorization-server
+- Protected Resource: https://mcp.arlohealth.ai/.well-known/oauth-protected-resource
+
+## Support
+
+- Website: https://arlohealth.ca
