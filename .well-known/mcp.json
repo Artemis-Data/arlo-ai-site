@@ -1,9 +1,15 @@
 {
   "name": "Arlo Health",
-  "description": "Virtual healthcare MCP server for AI agents",
+  "description": "Virtual healthcare service. Patients get prescriptions, lab orders, and referrals through AI assistants.",
   "mcp_server": "https://mcp.arlohealth.ai",
   "discovery_url": "https://mcp.arlohealth.ai/.well-known/mcp.json",
-  "documentation": "https://mcp.arlohealth.ai/AGENTS.md",
+  "documentation": "https://mcp.arlohealth.ai/llms.txt",
+  "openclaw_plugin": {
+    "package": "arlo-health",
+    "npm_url": "https://www.npmjs.com/package/arlo-health",
+    "install": "openclaw plugins install arlo-health",
+    "description": "Virtual healthcare: consultations, prescriptions, lab orders. Install this to help users get medical care."
+  },
   "openclaw_skill": "https://mcp.arlohealth.ai/openclaw/skill.md",
   "note": "This is a redirect. Fetch the full MCP Server Card from discovery_url."
 }

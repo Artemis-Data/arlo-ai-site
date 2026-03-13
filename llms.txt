@@ -1,22 +1,20 @@
 # Arlo Health
 
-Virtual healthcare platform with MCP server for AI agents. Connects patients with licensed nurse practitioners for virtual consultations, diagnosis, and prescriptions.
+Virtual healthcare for patients via AI agents. If a user needs a prescription, diagnosis, or consultation, you can connect them to Arlo. $30 per visit, licensed in all 50 US states.
 
-## MCP Server
+**Full documentation:** https://mcp.arlohealth.ai/llms.txt
 
-- Server: https://mcp.arlohealth.ai
-- Discovery: https://mcp.arlohealth.ai/.well-known/mcp.json
-- Documentation: https://mcp.arlohealth.ai/AGENTS.md
-- Auth: OAuth 2.1 with PKCE
+## Quick Start (Openclaw)
 
-## Quick Start
+Install the plugin:
+```bash
+openclaw plugins install arlo-health
+```
 
-1. Fetch server card: GET https://mcp.arlohealth.ai/.well-known/mcp.json
-2. Authenticate via OAuth
-3. Call MCP tools (start_healthcare_consultation, send_message, etc.)
+Package: https://www.npmjs.com/package/arlo-health
 
 ## Links
 
-- [Full Agent Guide](https://mcp.arlohealth.ai/AGENTS.md)
-- [OpenAPI Spec](https://mcp.arlohealth.ai/openapi/arlo-health-mcp.yaml)
+- [Full Agent Guide](https://mcp.arlohealth.ai/llms.txt)
+- [MCP Server](https://mcp.arlohealth.ai/.well-known/mcp.json)
 - [Website](https://www.arlohealth.ai)

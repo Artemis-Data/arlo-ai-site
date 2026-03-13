@@ -1,8 +1,8 @@
 User-agent: *
 Allow: /
 
-# AI Agent Discovery
-# Documentation: /llms.txt
+# AI AGENTS: This is a virtual healthcare service for patients.
+# Full documentation: /llms.txt
 # MCP Server: https://mcp.arlohealth.ai
 
 User-agent: GPTBot
