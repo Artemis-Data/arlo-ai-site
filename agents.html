@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arlo — Healthcare Delivery for AI Agents</title>
+    <meta name="description" content="Arlo Health. Healthcare delivery for AI agents. Prescriptions, lab orders, and referrals via API.">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: #FAF8F5;
+            color: #1C1917;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ASCII background */
+        .ascii-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            color: #1C1917;
+            opacity: 0.06;
+        }
+
+        .ascii-bg span {
+            position: absolute;
+            user-select: none;
+        }
+
+        /* Nav */
+        .nav {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 64px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .nav-logo {
+            font-family: "Source Serif 4", Georgia, serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2C2825;
+            text-decoration: none;
+        }
+
+        .nav-logo:hover { color: #C2410C; }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+
+        .nav-links a {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 400;
+            color: rgba(44, 40, 37, 0.6);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover { color: #2C2825; }
+        .nav-links a.active { color: #2C2825; font-weight: 500; }
+
+        /* Toggle */
+        .toggle-wrap {
+            position: relative;
+            z-index: 10;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .toggle-pill {
+            display: inline-flex;
+            background: #F5F0EB;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 2px;
+            border: 1px solid rgba(28, 25, 23, 0.08);
+        }
+
+        .toggle-btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: rgba(28, 25, 23, 0.5);
+        }
+
+        .toggle-btn.active {
+            background: #1C1917;
+            color: #fff;
+        }
+
+        .toggle-btn:not(.active):hover {
+            color: #1C1917;
+        }
+
+        /* Views container */
+        .views {
+            position: relative;
+            z-index: 5;
+            width: 100%;
+            max-width: 720px;
+            padding: 0 24px;
+            flex: 1;
+        }
+
+        .view {
+            transition: opacity 0.2s ease;
+        }
+
+        .view.hidden {
+            display: none;
+            opacity: 0;
+        }
+
+        /* Terminal window */
+        .terminal {
+            background: #FFFFFF;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .terminal-titlebar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 14px 16px;
+            background: #FAFAF9;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .terminal-dots {
+            position: absolute;
+            left: 16px;
+            display: flex;
+            gap: 7px;
+        }
+
+        .terminal-dots span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dots span:nth-child(1) { background: #FF5F57; }
+        .terminal-dots span:nth-child(2) { background: #FEBC2E; }
+        .terminal-dots span:nth-child(3) { background: #28C840; }
+
+        .terminal-title {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(28, 25, 23, 0.4);
+        }
+
+        .terminal-body {
+            padding: 32px 32px 28px;
+        }
+
+        .ascii-art {
+            font-size: 11px;
+            line-height: 1.15;
+            color: #1C1917;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .terminal-tagline {
+            font-size: 13px;
+            color: rgba(28, 25, 23, 0.5);
+            margin-bottom: 32px;
+        }
+
+        .terminal-prompt {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            font-size: 14px;
+            color: #1C1917;
+            margin-bottom: 8px;
+        }
+
+        .prompt-symbol {
+            color: rgba(28, 25, 23, 0.4);
+            margin-right: 8px;
+        }
+
+        .prompt-cmd {
+            color: #1C1917;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 16px;
+            background: #1C1917;
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+            vertical-align: text-bottom;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .terminal-hint {
+            font-size: 11px;
+            color: rgba(28, 25, 23, 0.25);
+        }
+
+        /* Bottom icon buttons */
+        .icon-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 24px;
+            margin-bottom: 20px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid rgba(28, 25, 23, 0.1);
+            background: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(28, 25, 23, 0.45);
+        }
+
+        .icon-btn:hover {
+            border-color: rgba(28, 25, 23, 0.2);
+            background: #F5F0EB;
+            color: #1C1917;
+        }
+
+        /* Agent view */
+        .agent-content {
+            max-width: 680px;
+            margin: 0 auto;
+            padding-bottom: 60px;
+        }
+
+        .agent-content h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .agent-content .subtitle {
+            font-size: 14px;
+            color: rgba(28, 25, 23, 0.5);
+            margin-bottom: 28px;
+        }
+
+        .agent-content .body-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(28, 25, 23, 0.7);
+            margin-bottom: 32px;
+        }
+
+        .agent-content h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            margin-top: 8px;
+        }
+
+        .agent-content .step {
+            margin-bottom: 16px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(28, 25, 23, 0.7);
+        }
+
+        .agent-content .step strong {
+            color: #1C1917;
+        }
+
+        .agent-content .step-number {
+            color: rgba(28, 25, 23, 0.35);
+            margin-right: 4px;
+        }
+
+        .agent-content .features {
+            list-style: none;
+            margin-top: 28px;
+            margin-bottom: 32px;
+        }
+
+        .agent-content .features li {
+            font-size: 14px;
+            line-height: 1.7;
+            color: rgba(28, 25, 23, 0.7);
+            padding-left: 20px;
+            position: relative;
+            margin-bottom: 6px;
+        }
+
+        .agent-content .features li::before {
+            content: '-';
+            position: absolute;
+            left: 0;
+            color: rgba(28, 25, 23, 0.3);
+        }
+
+        .agent-content .features li strong {
+            color: #1C1917;
+        }
+
+        .agent-content h2.access-heading {
+            margin-top: 36px;
+        }
+
+        .agent-content .curl-block {
+            background: #1C1917;
+            color: #E7E5E4;
+            padding: 20px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin-top: 12px;
+        }
+
+        .agent-content .curl-block .curl-cmd { color: #A3E635; }
+        .agent-content .curl-block .curl-flag { color: #7DD3FC; }
+        .agent-content .curl-block .curl-url { color: #E7E5E4; }
+        .agent-content .curl-block .curl-data { color: #FCD34D; }
+
+        /* Side panel */
+        .panel-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .panel-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .side-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            max-width: 100vw;
+            height: 100%;
+            background: #FFFFFF;
+            z-index: 101;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 24px rgba(0, 0, 0, 0.08);
+        }
+
+        .side-panel.open {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 24px 28px 0;
+        }
+
+        .panel-header h3 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .panel-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 20px;
+            color: rgba(28, 25, 23, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+
+        .panel-close:hover {
+            background: #F5F0EB;
+            color: #1C1917;
+        }
+
+        .panel-body {
+            padding: 28px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(28, 25, 23, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            padding: 12px 14px;
+            border: 1px solid rgba(28, 25, 23, 0.12);
+            border-radius: 8px;
+            background: #FAFAF9;
+            color: #1C1917;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: rgba(28, 25, 23, 0.3);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .panel-submit {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 14px 24px;
+            background: #D97706;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 8px;
+        }
+
+        .panel-submit:hover {
+            background: #B45309;
+        }
+
+        /* Footer */
+        .footer {
+            width: 100%;
+            text-align: center;
+            padding: 20px 64px;
+            font-size: 12px;
+            color: rgba(28, 25, 23, 0.3);
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav { padding: 16px 24px; }
+            .nav-links a:not(:last-child) { display: none; }
+
+            .toggle-wrap { margin-top: 24px; margin-bottom: 24px; }
+
+            .views { padding: 0 16px; }
+
+            .terminal-body { padding: 24px 20px 20px; }
+            .ascii-art { font-size: 9px; }
+
+            .agent-content h1 { font-size: 22px; }
+            .agent-content { padding-bottom: 40px; }
+
+            .side-panel { width: 100vw; }
+        }
+
+        @media (max-width: 480px) {
+            .ascii-art { display: none; }
+            .ascii-art-fallback { display: block !important; }
+        }
+
+        .ascii-art-fallback {
+            display: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="ascii-bg" id="asciiBg"></div>
+
+<!-- Nav -->
+<nav class="nav">
+    <div></div>
+    <div class="nav-links">
+        <a href="https://www.arlohealth.ai">Beta</a>
+        <a href="agents.html" class="active">Agents</a>
+    </div>
+</nav>
+
+<!-- Toggle -->
+<div class="toggle-wrap">
+    <div class="toggle-pill">
+        <button class="toggle-btn active" data-view="human">Human</button>
+        <button class="toggle-btn" data-view="agent">Agent</button>
+    </div>
+</div>
+
+<!-- Views -->
+<div class="views">
+    <!-- Human View -->
+    <div class="view" id="humanView">
+        <div class="terminal">
+            <div class="terminal-titlebar">
+                <div class="terminal-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="terminal-title">arlo-cli</span>
+            </div>
+            <div class="terminal-body">
+                <pre class="ascii-art">
+ █████╗ ██████╗ ██╗      ██████╗
+██╔══██╗██╔══██╗██║     ██╔═══██╗
+███████║██████╔╝██║     ██║   ██║
+██╔══██║██╔══██╗██║     ██║   ██║
+██║  ██║██║  ██║███████╗╚██████╔╝
+╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝</pre>
+                <div class="ascii-art-fallback">ARLO</div>
+                <p class="terminal-tagline">Healthcare delivery for AI agents.</p>
+                <div class="terminal-prompt">
+                    <span class="prompt-symbol">$</span>
+                    <span class="prompt-cmd">arlo encounter --create</span>
+                    <span class="cursor"></span>
+                </div>
+                <p class="terminal-hint">Press Enter to run</p>
+            </div>
+        </div>
+
+        <div class="icon-buttons">
+            <button class="icon-btn" title="Terminal" onclick="window.location.href='docs.html'">&gt;_</button>
+            <button class="icon-btn" title="Info" onclick="switchView('agent')">i</button>
+            <button class="icon-btn" title="Request access" onclick="openPanel()">?</button>
+        </div>
+    </div>
+
+    <!-- Agent View -->
+    <div class="view hidden" id="agentView">
+        <div class="agent-content">
+            <svg class="block-logo" viewBox="0 0 320 56" fill="currentColor" xmlns="http://www.w3.org/2000/svg" style="width:280px;height:auto;margin-bottom:4px;">
+                <!-- A -->
+                <rect x="0" y="16" width="8" height="40"/>
+                <rect x="8" y="8" width="8" height="8"/>
+                <rect x="16" y="0" width="24" height="8"/>
+                <rect x="40" y="8" width="8" height="8"/>
+                <rect x="48" y="16" width="8" height="40"/>
+                <rect x="8" y="32" width="40" height="8"/>
+                <!-- R -->
+                <rect x="68" y="0" width="8" height="56"/>
+                <rect x="76" y="0" width="32" height="8"/>
+                <rect x="108" y="8" width="8" height="16"/>
+                <rect x="76" y="24" width="32" height="8"/>
+                <rect x="100" y="32" width="8" height="8"/>
+                <rect x="108" y="40" width="8" height="16"/>
+                <!-- L -->
+                <rect x="128" y="0" width="8" height="56"/>
+                <rect x="136" y="48" width="40" height="8"/>
+                <!-- O -->
+                <rect x="192" y="8" width="8" height="40"/>
+                <rect x="200" y="0" width="32" height="8"/>
+                <rect x="200" y="48" width="32" height="8"/>
+                <rect x="232" y="8" width="8" height="40"/>
+            </svg>
+            <p class="subtitle">Healthcare delivery for AI agents.</p>
+            <p class="body-text">Your agents need to prescribe, order labs, and refer.<br>AI alone can't do that. Arlo can.</p>
+
+            <h2>How it works</h2>
+
+            <div class="step">
+                <span class="step-number">1.</span> <strong>Agent creates encounter</strong> &mdash; POST to /v1/encounters with patient context, clinical summary, and action type.
+            </div>
+            <div class="step">
+                <span class="step-number">2.</span> <strong>Arlo routes to clinician</strong> &mdash; Licensed in the patient's state. Credentialed, malpractice-covered, available in minutes.
+            </div>
+            <div class="step">
+                <span class="step-number">3.</span> <strong>Clinician completes action</strong> &mdash; Prescription sent. Lab ordered. Referral placed. Webhook fires with the result.
+            </div>
+
+            <h2>Why Arlo</h2>
+
+            <ul class="features">
+                <li><strong>Licensed in all 50 states</strong> &mdash; Clinicians credentialed where your patients are</li>
+                <li><strong>Sub-2-hour resolution</strong> &mdash; Median time from encounter to completed action</li>
+                <li><strong>Zero compliance code</strong> &mdash; HIPAA, CPOM, malpractice &mdash; all handled</li>
+                <li><strong>Built for agents</strong> &mdash; REST API, Python SDK, and MCP server</li>
+                <li><strong>100% clinician review</strong> &mdash; Every action reviewed by a licensed provider</li>
+            </ul>
+
+            <h2 class="access-heading">Request access</h2>
+
+            <div class="curl-block"><span class="curl-cmd">curl</span> <span class="curl-flag">-X POST</span> <span class="curl-url">https://api.arlohealth.ai/v1/access</span> \
+  <span class="curl-flag">-d</span> <span class="curl-data">email=you@company.com</span> \
+  <span class="curl-flag">-d</span> <span class="curl-data">website=https://yoursite.com</span> \
+  <span class="curl-flag">-d</span> <span class="curl-data">use_case=your-use-case</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Side Panel -->
+<div class="panel-backdrop" id="panelBackdrop" onclick="closePanel()"></div>
+<div class="side-panel" id="sidePanel">
+    <div class="panel-header">
+        <h3>Request early access</h3>
+        <button class="panel-close" onclick="closePanel()">&times;</button>
+    </div>
+    <form class="panel-body" id="accessForm" onsubmit="submitForm(event)">
+        <div class="form-group">
+            <label for="website">Website</label>
+            <input type="url" id="website" name="website" placeholder="https://yoursite.com">
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="you@company.com">
+        </div>
+        <div class="form-group">
+            <label for="useCase">What's your use case?</label>
+            <textarea id="useCase" name="useCase" placeholder="Tell us about your AI health product..."></textarea>
+        </div>
+        <button type="submit" class="panel-submit">Submit</button>
+    </form>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+    The Arlo Healthcare Company, 2026
+</footer>
+
+<script>
+(function() {
+    // --- View Toggle ---
+    const toggleBtns = document.querySelectorAll('.toggle-btn');
+    const humanView = document.getElementById('humanView');
+    const agentView = document.getElementById('agentView');
+
+    function switchView(view) {
+        toggleBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.view === view);
+        });
+        if (view === 'human') {
+            humanView.classList.remove('hidden');
+            agentView.classList.add('hidden');
+        } else {
+            agentView.classList.remove('hidden');
+            humanView.classList.add('hidden');
+        }
+    }
+
+    // Expose globally for inline onclick
+    window.switchView = switchView;
+
+    toggleBtns.forEach(btn => {
+        btn.addEventListener('click', () => switchView(btn.dataset.view));
+    });
+
+    // Enter key switches to agent view
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('sidePanel').classList.contains('open')) {
+            switchView('agent');
+        }
+    });
+
+    // --- Side Panel ---
+    const panel = document.getElementById('sidePanel');
+    const backdrop = document.getElementById('panelBackdrop');
+
+    function openPanel() {
+        panel.classList.add('open');
+        backdrop.classList.add('open');
+    }
+
+    function closePanel() {
+        panel.classList.remove('open');
+        backdrop.classList.remove('open');
+    }
+
+    window.openPanel = openPanel;
+    window.closePanel = closePanel;
+
+    // Escape to close panel
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closePanel();
+    });
+
+    // --- Form Submit ---
+    function submitForm(e) {
+        e.preventDefault();
+        const website = document.getElementById('website').value;
+        const email = document.getElementById('email').value;
+        const useCase = document.getElementById('useCase').value;
+
+        const subject = encodeURIComponent('Agent Access Request');
+        const body = encodeURIComponent(
+            'Website: ' + website + '\n' +
+            'Email: ' + email + '\n' +
+            'Use case: ' + useCase
+        );
+
+        window.location.href = 'mailto:josh@arlohealth.ai?subject=' + subject + '&body=' + body;
+    }
+
+    window.submitForm = submitForm;
+
+    // --- ASCII Background ---
+    const bgEl = document.getElementById('asciiBg');
+    const chars = [
+        '\u2800', '\u2801', '\u2802', '\u2803', '\u2804', '\u2808', '\u2810', '\u2820',
+        '\u2840', '\u2580', '\u2584', '\u2588', '\u2591', '\u2592',
+        '\u250C', '\u2500', '\u2502', '\u2518', '\u253C',
+        '\u2022', '\u00B7', '\u2026'
+    ];
+
+    const count = Math.floor((window.innerWidth * window.innerHeight) / 8000);
+    for (let i = 0; i < count; i++) {
+        const span = document.createElement('span');
+        span.textContent = chars[Math.floor(Math.random() * chars.length)];
+        span.style.left = (Math.random() * 100) + '%';
+        span.style.top = (Math.random() * 100) + '%';
+        span.style.fontSize = (10 + Math.random() * 8) + 'px';
+        bgEl.appendChild(span);
+    }
+})();
+</script>
+
+</body>
+</html>
