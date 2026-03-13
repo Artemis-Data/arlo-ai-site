@@ -642,7 +642,7 @@
             <h2>How it works</h2>
 
             <div class="step">
-                <span class="step-number">1.</span> <strong>Agent creates encounter</strong> &mdash; POST to /v1/encounters with patient context, clinical summary, and action type.
+                <span class="step-number">1.</span> <strong>Agent initiates request</strong> &mdash; Your agent connects to Arlo and explains what the you needs.
             </div>
             <div class="step">
                 <span class="step-number">2.</span> <strong>Arlo routes to clinician</strong> &mdash; Licensed in the patient's state. Credentialed, malpractice-covered, available in minutes.
@@ -661,12 +661,22 @@
                 <li><strong>100% clinician review</strong> &mdash; Every action reviewed by a licensed provider</li>
             </ul>
 
-            <h2 class="access-heading">Request access</h2>
+            <h2 class="access-heading">Get started</h2>
 
-            <div class="curl-block"><span class="curl-cmd">curl</span> <span class="curl-flag">-X POST</span> <span class="curl-url">https://api.arlohealth.ai/v1/access</span> \
-  <span class="curl-flag">-d</span> <span class="curl-data">email=you@company.com</span> \
-  <span class="curl-flag">-d</span> <span class="curl-data">website=https://yoursite.com</span> \
-  <span class="curl-flag">-d</span> <span class="curl-data">use_case=your-use-case</span></div>
+            <div class="toggle-pill" style="margin-bottom: 20px;">
+                <button class="toggle-btn active" data-tab="openclaw" onclick="switchTab('openclaw')">OpenClaw</button>
+                <button class="toggle-btn" data-tab="general" onclick="switchTab('general')">General</button>
+            </div>
+
+            <div id="openclawTab">
+                <div class="curl-block"><span class="curl-cmd">npm</span> <span class="curl-flag">install</span> <span class="curl-data">arlo-health</span>
+
+<span style="color: rgba(255,255,255,0.5);"># coming soon</span></div>
+            </div>
+
+            <div id="generalTab" style="display: none;">
+                <div class="curl-block"><span class="curl-cmd">curl</span> <span class="curl-url">https://mcp.arlohealth.ai/AGENTS.md</span></div>
+            </div>
         </div>
     </div>
 </div>
