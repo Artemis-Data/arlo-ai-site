@@ -670,8 +670,6 @@
 
             <div id="openclawTab">
                 <div class="curl-block"><span class="curl-cmd">npm</span> <span class="curl-flag">install</span> <span class="curl-data">arlo-health</span>
-
-<span style="color: rgba(255,255,255,0.5);"># coming soon</span></div>
             </div>
 
             <div id="generalTab" style="display: none;">
@@ -713,12 +711,12 @@
 <script>
 (function() {
     // --- View Toggle ---
-    const toggleBtns = document.querySelectorAll('.toggle-btn');
+    const viewBtns = document.querySelectorAll('[data-view]');
     const humanView = document.getElementById('humanView');
     const agentView = document.getElementById('agentView');
 
     function switchView(view) {
-        toggleBtns.forEach(btn => {
+        viewBtns.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.view === view);
         });
         if (view === 'human') {
@@ -733,7 +731,19 @@
     // Expose globally for inline onclick
     window.switchView = switchView;
 
-    toggleBtns.forEach(btn => {
+    // --- Tab Toggle (Get Started section) ---
+    function switchTab(tab) {
+        const tabBtns = document.querySelectorAll('[data-tab]');
+        tabBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+        document.getElementById('openclawTab').style.display = tab === 'openclaw' ? 'block' : 'none';
+        document.getElementById('agentTab').style.display = tab === 'agent' ? 'block' : 'none';
+    }
+
+    window.switchTab = switchTab;
+
+    viewBtns.forEach(btn => {
         btn.addEventListener('click', () => switchView(btn.dataset.view));
     });
 
