@@ -1,6 +1,6 @@
 {
   "name": "Arlo Health",
-  "description": "Canadian telemedicine MCP server",
+  "description": "Virtual healthcare MCP server for AI agents",
   "mcp_server": "https://mcp.arlohealth.ai",
   "discovery_url": "https://mcp.arlohealth.ai/.well-known/mcp.json",
   "documentation": "https://mcp.arlohealth.ai/AGENTS.md",
